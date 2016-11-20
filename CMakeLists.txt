@@ -14,5 +14,9 @@ target_include_directories(googletest
                            PRIVATE ${GTEST_DIRECTORY})
 add_executable(all-tests
                tests/result.cc)
+target_include_directories(all-tests 
+                           PRIVATE include)
+
+set_property(TARGET all-tests PROPERTY CXX_STANDARD 11)
 target_link_libraries(all-tests googletest)
 
