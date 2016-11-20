@@ -39,7 +39,7 @@ struct error_traits {
     constexpr static E ok_value();
 
     /**
-     * May be provided for an error type as the default error statu, so 
+     * May be provided for an error type as the default error status, so 
      * \code result<T,E>::fail() \endcode can be called without arguments. For 
      * types where there is no clear default failed value, this can be omitted.
      */
