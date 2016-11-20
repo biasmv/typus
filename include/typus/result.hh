@@ -16,10 +16,9 @@
 
 #ifndef TYPUS_RESULT_HH
 #define TYPUS_RESULT_HH
-#include <string>
-#include <iostream>
+
+#include <memory>
 #include <cassert>
-#include <vector>
 #include <type_traits>
 
 
