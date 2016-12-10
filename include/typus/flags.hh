@@ -42,7 +42,7 @@ public:
         return *this;
     }
 
-    flags<E>  operator | (E value) {
+    flags<E>  operator | (E value) const {
         flags<E> rv(*this);
         rv |= value;
         return rv;
