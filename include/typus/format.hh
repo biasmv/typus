@@ -18,6 +18,7 @@
 
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <tuple>
 #include "meta/char_sequence.hh"
 
@@ -36,6 +37,7 @@ template <char... Cs>
 using char_seq = ::typus::meta::char_sequence<Cs...>;
 
 // FIXME: provide better impl that understands format options.
+template <typename ...Fs>
 struct placeholder {};
 
 // appends character to existing previous char_sequence by inserting the type at the 
@@ -47,8 +49,8 @@ auto append_format(format_str<char_seq<Cs...>, Ts...>, char_seq<C>)
     -> format_str<char_seq<Cs..., C>, Ts...>;
 
 // appends an placeholder
-template <typename... Ts>
-auto append_format(format_str<Ts...>, placeholder) -> format_str<placeholder, Ts...>;
+template <typename... Fs, typename... Ts>
+auto append_format(format_str<Ts...>, placeholder<Fs...>) -> format_str<placeholder<Fs...>, Ts...>;
 
 // appends a char_sequence
 template <char C, typename... Ts>
@@ -66,13 +68,35 @@ auto reverse_impl(format_str<Os...>, format_str<T, Ts...>)
 template <typename... Os>
 auto reverse_impl(format_str<Os...>, format_str<>) -> format_str<Os...>;
 
-template <size_t W> struct width_f { };
+template <size_t W> 
+struct width_f { 
 
-template <char C> struct fill_f {};
+    width_f(std::ostream &os): before(os.width(W)) {}
+
+    void restore(std::ostream &os) {
+        os.width(before);
+    }
+
+    size_t before;
+};
+
+template <char C> 
+struct fill_f {
+    fill_f(std::ostream &os): before(os.fill(C)) {
+    }
+    void restore(std::ostream &os) {
+        os.fill(before);
+    }
+    char before;
+};
+
+struct ctx_placeholder {};
+struct ctx_top_level {};
 
 template <typename... Ts, char... Cs>
-auto parse_impl(format_str<Ts...>, char_seq<'{', '{', Cs...>) 
-    -> decltype(parse_impl(append_format(format_str<Ts...>{}, char_seq<'{'>{}), 
+auto parse_impl(ctx_top_level, format_str<Ts...>, char_seq<'{', '{', Cs...>) 
+    -> decltype(parse_impl(ctx_top_level{}, 
+                           append_format(format_str<Ts...>{}, char_seq<'{'>{}), 
                            char_seq<Cs...>{}));
 
 template <char... Cs>
@@ -84,45 +108,61 @@ char_seq<> as_char_seq();
 // parses a format-specifier or escaped {. Continues until either a second { is found 
 // or the format specifier is terminated with }. For now, we don't do anything with 
 // the format specifier.
-template <typename... Ts, char... Cs>
-auto parse_impl(format_str<Ts...>, char_seq<'{', Cs...>) 
-    -> decltype(parse_impl(append_format(format_str<Ts...>{}, placeholder{}), 
+template <typename ... Fs, typename... Ts, char... Cs>
+auto parse_impl(ctx_top_level, format_str<Ts...>, char_seq<'{', Cs...>) 
+    -> decltype(parse_impl(ctx_placeholder{}, 
+                           append_format(format_str<Ts...>{}, placeholder<Fs...>{}), 
                            as_char_seq<Cs...>()));
 
 template <typename... Ts, char... Cs>
-auto parse_impl(format_str<Ts...>, char_seq<'}', '}', Cs...>) 
-    -> decltype(parse_impl(append_format(format_str<Ts...>{}, char_seq<'}'>{}), 
+auto parse_impl(ctx_top_level, format_str<Ts...>, char_seq<'}', '}', Cs...>) 
+    -> decltype(parse_impl(ctx_top_level{}, 
+                           append_format(format_str<Ts...>{}, char_seq<'}'>{}), 
                            as_char_seq<Cs...>()));
 
 template <typename... Ts, char... Cs>
-auto parse_impl(format_str<Ts...>, char_seq<'}', Cs...>) 
-    -> decltype(parse_impl(format_str<Ts...>{}, 
+auto parse_impl(ctx_placeholder, format_str<Ts...>, char_seq<'}', Cs...>) 
+    -> decltype(parse_impl(ctx_top_level{},
+                           format_str<Ts...>{}, 
                            as_char_seq<Cs...>()));
 
 // char_sequence, whereas placeholders are stored as separate types.
 template <char C, typename... Ts, char... Cs>
-auto parse_impl(format_str<Ts...>, char_seq<C, Cs...>) 
-    -> decltype(parse_impl(append_format(format_str<Ts...>{}, char_seq<C>{}), 
+auto parse_impl(ctx_top_level, format_str<Ts...>, char_seq<C, Cs...>) 
+    -> decltype(parse_impl(ctx_top_level{},
+                           append_format(format_str<Ts...>{}, char_seq<C>{}), 
                            as_char_seq<Cs...>()));
 
-
-template <typename... Ts, char... Cs>
-auto parse_impl(format_str<Ts...>, char_seq<Cs...>) -> format_str<Ts...>;
+template <typename Ctx, typename... Ts, char... Cs>
+auto parse_impl(Ctx, format_str<Ts...>, char_seq<Cs...>) -> format_str<Ts...>;
 
 // the return value of parse_impl contains the arguments in reverse order. Before we
 // can use them we have to flip em.
 template <char... Cs>
 auto parse(char_seq<Cs...>) -> 
-    decltype(reverse(parse_impl(format_str<>{}, char_seq<Cs...>{})));
+    decltype(reverse(parse_impl(ctx_top_level{}, 
+                                format_str<>{}, char_seq<Cs...>{})));
 
-template <typename T, typename... Ts>
-std::ostream & operator<<(std::ostream &os, const format_str<T, Ts...> &placeholder) {
+template <typename F, typename ...Fs, typename T>
+void apply_format(std::ostream &os, placeholder<F, Fs...>, const T&value) {
+    F modifier(os);
+    apply_format(os, placeholder<Fs...>{}, value);
+    modifier.restore(os);
+}
+
+template <typename T>
+void apply_format(std::ostream &os, placeholder<>, const T& value) { 
+    os << value;
+}
+
+template <typename T, typename ...Fs, typename... Ts>
+std::ostream & operator<<(std::ostream &os, const format_str<T, Ts...> &) {
     return os << T{} << format_str<Ts...>{};
 }
 
 // matches empty template arg pack -> terminate recursion
-template <typename ... Ts>
-std::ostream & operator<<(std::ostream &os, const format_str<Ts...> &placeholder) { 
+template <typename... Fs, typename ... Ts>
+std::ostream & operator<<(std::ostream &os, const format_str<Ts...> &) { 
     return os; 
 }
 
@@ -134,12 +174,12 @@ inline void print_impl(std::ostream &os,
     print_impl<N>(os, format_str<A...>{}, args);
 }
 
-template <size_t N, typename... A, typename... T>
+template <size_t N, typename ... Fs, typename... A, typename... T>
 inline void print_impl(std::ostream &os, 
-                const format_str<placeholder, A...>, 
+                const format_str<placeholder<Fs...>, A...>, 
                 const std::tuple<T...> &args) {
     static_assert(N < sizeof...(T), "not enough arguments provided for format string");
-    os << std::get<N>(args);
+    apply_format(os, placeholder<Fs...>{}, std::get<N>(args));
     print_impl<N+1>(os, format_str<A...>{}, args);
 }
 
