@@ -13,13 +13,16 @@ target_include_directories(googletest
                            PUBLIC  ${GTEST_DIRECTORY}/include 
                            PRIVATE ${GTEST_DIRECTORY})
 add_executable(all-tests
-               tests/result.cc
-               tests/flags.cc
-               tests/str_const.cc
-               tests/format.cc
+    tests/result.cc
+    tests/flags.cc
+    tests/str_const.cc
+    tests/format.cc
 )
 
 add_executable(link-test src/link_test.cc)
+
+set(CMAKE_CXX_FLAGS 
+    "${CMAKE_CXX_FLAGS} -fno-exceptions -fvisibility=hidden -fvisibility-inlines-hidden")
 
 target_include_directories(all-tests PRIVATE include)
 target_include_directories(link-test PRIVATE include)
