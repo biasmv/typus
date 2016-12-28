@@ -40,7 +40,8 @@ struct placeholder {};
 
 // appends character to existing previous char_sequence by inserting the type at the 
 // front (due to type deduction rules, we can't match types at the end of a variadic 
-// argument pack).
+// argument pack). In case previous  type in the format_str was not a char sequence, 
+// a new char_sequence is started.
 template <char C, char... Cs, typename... Ts>
 auto append_format(format_str<char_seq<Cs...>, Ts...>, char_seq<C>)
     -> format_str<char_seq<Cs..., C>, Ts...>;
@@ -64,7 +65,6 @@ auto reverse_impl(format_str<Os...>, format_str<T, Ts...>)
 
 template <typename... Os>
 auto reverse_impl(format_str<Os...>, format_str<>) -> format_str<Os...>;
-
 
 template <size_t W> struct width_f { };
 
