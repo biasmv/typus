@@ -86,8 +86,6 @@ TEST(Result, failed_result_conversion) {
 enum class Error {
     Ok, NoSuchFile, NoHardDrive
 };
-
-namespace typus {
 template <>
 struct error_traits<Error> {
     constexpr static Error ok_value() { return Error::Ok; }
@@ -95,8 +93,6 @@ struct error_traits<Error> {
         return error == Error::Ok;
     }
 };
-
-}
 
 TEST(Result, with_custom_error_type) {
     result<int, Error> r1(1);

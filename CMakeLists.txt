@@ -15,16 +15,10 @@ target_include_directories(googletest
 add_executable(all-tests
                tests/result.cc
                tests/flags.cc
-               tests/str_const.cc
-               tests/format.cc
 )
-
-add_executable(link-test src/link_test.cc)
-
-target_include_directories(all-tests PRIVATE include)
-target_include_directories(link-test PRIVATE include)
+target_include_directories(all-tests 
+                           PRIVATE include)
 
 set_property(TARGET all-tests PROPERTY CXX_STANDARD 11)
-set_property(TARGET link-test PROPERTY CXX_STANDARD 11)
 target_link_libraries(all-tests googletest)
 
