@@ -61,6 +61,9 @@ template <typename... Ts>
 auto reverse(format_str<Ts...>) 
     -> decltype(reverse_impl(format_str<>{}, format_str<Ts...>{}));
 
+// forward error
+template <typename T> auto reverse(T) -> T;
+
 template <typename T, typename... Ts, typename... Os>
 auto reverse_impl(format_str<Os...>, format_str<T, Ts...>) 
     -> decltype(reverse_impl(format_str<T, Os...>{}, format_str<Ts...>{}));
@@ -120,6 +123,12 @@ auto parse_impl(ctx_top_level, format_str<Ts...>, char_seq<'}', '}', Cs...>)
                            append_format(format_str<Ts...>{}, char_seq<'}'>{}), 
                            as_char_seq<Cs...>()));
 
+struct UNESCAPED_CLOSING_BRACE {};
+
+template <typename... Ts, char... Cs>
+auto parse_impl(ctx_top_level, format_str<Ts...>, char_seq<'}', Cs...>) 
+    ->  UNESCAPED_CLOSING_BRACE;
+
 template <typename... Ts, char... Cs>
 auto parse_impl(ctx_placeholder, format_str<Ts...>, char_seq<'}', Cs...>) 
     -> decltype(parse_impl(ctx_top_level{},
@@ -133,11 +142,17 @@ auto parse_impl(ctx_top_level, format_str<Ts...>, char_seq<C, Cs...>)
                            append_format(format_str<Ts...>{}, char_seq<C>{}), 
                            as_char_seq<Cs...>()));
 
-template <typename Ctx, typename... Ts, char... Cs>
-auto parse_impl(Ctx, format_str<Ts...>, char_seq<Cs...>) -> format_str<Ts...>;
 
-// the return value of parse_impl contains the arguments in reverse order. Before we
-// can use them we have to flip em.
+struct PLACEHOLDER_WITHOUT_CLOSING_BRACE {};
+template <typename... Ts>
+auto parse_impl(ctx_placeholder, format_str<Ts...>, char_seq<>) 
+    ->  PLACEHOLDER_WITHOUT_CLOSING_BRACE;
+
+template <typename... Ts>
+auto parse_impl(ctx_top_level, format_str<Ts...>, char_seq<>) -> format_str<Ts...>;
+
+// the return value of parse_impl contains the arguments in reverse order. Before 
+// we can use them we have to flip em.
 template <char... Cs>
 auto parse(char_seq<Cs...>) -> 
     decltype(reverse(parse_impl(ctx_top_level{}, 

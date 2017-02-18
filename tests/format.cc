@@ -30,8 +30,8 @@ TEST(Format, allows_to_escape_curly_braces) {
     ASSERT_EQ("abc{defXYZ", $("abc{{def{}").to_str("XYZ"));
 }
 
-TEST(Format, format_modifier) {
-    //ASSERT_EQ("a: 4.25", $("a: {:.2}").to_str(4.25f));
+TEST(Format, parses_format_modifiers) {
+    //ASSERT_EQ("a: |4.25|", $("a: |{:.2}|").to_str(4.25f));
 }
 
 struct NonCopyableAndMovable {
