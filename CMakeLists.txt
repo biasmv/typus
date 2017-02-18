@@ -15,7 +15,9 @@ target_include_directories(googletest
 add_executable(all-tests
                tests/result.cc
                tests/flags.cc
+               tests/variant.cc
 )
+
 target_include_directories(all-tests 
                            PRIVATE include)
 
