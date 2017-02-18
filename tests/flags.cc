@@ -37,6 +37,15 @@ TEST(Flags, construction) {
 
     ASSERT_EQ(0x01, flags<Enum>(EnumOne).bits());
     ASSERT_EQ(0x02, flags<EnumClass>(EnumClass::Two).bits());
+
+    ASSERT_EQ(0x03, flags<Enum>({EnumOne, EnumTwo}).bits());
+    ASSERT_EQ(0x03, flags<Enum>(EnumOne, EnumTwo).bits());
+}
+
+TEST(Flags, constexpr_support) {
+    constexpr flags<Enum> flags_a(EnumOne, EnumTwo);
+    static_assert(flags_a.bits() == 3u, "Uups");
+
 }
 
 TEST(Flags, bit_wise_ops) {
@@ -47,10 +56,9 @@ TEST(Flags, bit_wise_ops) {
     ASSERT_EQ(0x03, flags_b.bits());
     ASSERT_TRUE(flags_b.is_set(EnumOne));
     ASSERT_TRUE(flags_b.is_set(EnumTwo));
-    flags_b.clear();
+    flags_b.clear_all();
     ASSERT_FALSE(flags_b.is_set(EnumOne));
     ASSERT_FALSE(flags_b.is_set(EnumTwo));
     ASSERT_FALSE(flags_a.is_set(EnumTwo));
-
 }
 
