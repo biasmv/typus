@@ -33,12 +33,12 @@ public:
     flags(): bits_(0) {}
     flags(const flags<E> &rhs) = default;
     explicit flags(E value): 
-        bits_(reinterpret_cast<flag_storage_type&>(value)) {
+        bits_(static_cast<flag_storage_type>(value)) {
     }
 
 
     flags<E> & operator |=(E value) {
-        bits_ |= reinterpret_cast<flag_storage_type&>(value);
+        bits_ |= static_cast<flag_storage_type>(value);
         return *this;
     }
 
@@ -57,7 +57,7 @@ public:
     }
 
     bool is_set(E value) const {
-        flag_storage_type t = reinterpret_cast<flag_storage_type&>(value);
+        flag_storage_type t = static_cast<flag_storage_type>(value);
         return (bits_ & t) == t;
     }
 private:
