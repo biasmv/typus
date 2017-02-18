@@ -181,7 +181,7 @@ public:
      * \brief construct a failed result using the default fail value.
      *
      * This is probably only useful when using a boolean error type as 
-     * for all others there is not meaningful default error value.
+     * for all others there is no meaningful default error value.
      */
     static result<T, E> fail() {
         return result<T,E>(detail::failed_tag_t{}, 
