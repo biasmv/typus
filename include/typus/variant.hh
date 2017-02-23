@@ -124,6 +124,14 @@ public:
         return *this;
     }
 
+    variant &operator=(const variant& rhs) {
+        this->destroy_stored_object();
+        index_ = rhs.index();
+        details::copy_stored_object<storage> in_place_copier{ storage_ };
+        rhs.visit(in_place_copier);
+        return *this;
+    }
+
     template <typename F>
     void visit(F& func) {
         this->visit_stored_object<F, 0, Ts...>(func);

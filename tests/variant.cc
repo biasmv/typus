@@ -72,9 +72,14 @@ TEST(Variant, alternative_construction) {
 }
 
 TEST(Variant, assignment) {
-    variant<std::string, int, char> var{ std::string{"one"} };
+    using V = variant<std::string, int, char>; 
+    V var{ std::string{"one"} };
 
     var = std::string("two");
     ASSERT_EQ(0u, var.index());
     ASSERT_EQ(std::string("two"), var.get<0>());
+    V var2{ 'b' };
+    var = var2;
+    ASSERT_EQ(2u, var.index());
+    ASSERT_EQ('b', var.get<2>());
 }
