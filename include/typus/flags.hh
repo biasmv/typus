@@ -85,7 +85,7 @@ public:
     constexpr flags(const flags<E> &rhs) = default;
 
     /**
-     * \brief Construct flags by bitwise ORing of all of the arguments.
+     * \brief Construct flags by bitwise ORing all of the arguments.
      *
      * Arguments must either be a of type flags<E>, or type E, where E is 
      * the enum type of the flags object to be constructed.
