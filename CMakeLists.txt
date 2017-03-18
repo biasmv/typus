@@ -16,6 +16,7 @@ add_executable(all-tests
                tests/result.cc
                tests/flags.cc
                tests/variant.cc
+               tests/small_vector.cc
 )
 
 target_include_directories(all-tests 
