@@ -28,7 +28,6 @@ class flags;
 
 namespace details {
 
-
 template <typename E>
 constexpr typename flags<E>::flag_storage_type to_bits(const flags<E> &value) {
     return value.bits();
@@ -73,13 +72,16 @@ constexpr T fold_bitwise_or(T current, E x, Es ...xs) {
  *    of enums.
  *
  * This class is typically used to hold one or more enum values that are power 
- * of two.
+ * of two, but it's not restricted to such enum values.
  */
 template <typename E>
 class flags {
 public:
     using flag_storage_type = typename std::underlying_type<E>::type;
 
+    /**
+     * \brief Construct new instance of flags without any bits set.
+     */
     constexpr flags(): bits_(0) {}
 
     constexpr flags(const flags<E> &rhs) = default;
@@ -97,6 +99,8 @@ public:
     }
 
     /**
+     * \brief Construct new flags as a bit-wise combination of all enum 
+     *      values contained in the initializer list.
      */
     flags(const std::initializer_list<E> & values): bits_(0) {
         for (E value: values) {
@@ -110,14 +114,23 @@ public:
     TYPUS_BOOLEAN_OP(&, const flags<E> &)
 
 
+    /**
+     * \brief Access the underlying bits of this flags.
+     */
     constexpr flag_storage_type bits() const {
         return bits_;
     }
 
+    /**
+     * \brief Sets all bits to zero.
+     */
     void clear_all() {
         bits_ = 0;
     }
 
+    /**
+     * \brief Test whether the given enum value is present
+     */
     constexpr bool is_set(E value) const {
         return (bits_ & details::to_bits(value)) == details::to_bits(value);
     }
