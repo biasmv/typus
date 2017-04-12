@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(typus CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+
 
 set(GTEST_DIRECTORY vendor/googletest/googletest)
 
