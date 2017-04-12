@@ -18,6 +18,7 @@ add_executable(all-tests
                tests/flags.cc
                tests/variant.cc
                tests/small_vector.cc
+               tests/vec3.cc
 )
 
 add_executable(small-vector-benchmark
