@@ -21,6 +21,7 @@ add_executable(all-tests
                tests/variant.cc
                tests/small_vector.cc
                tests/vec3.cc
+               tests/mem_view.cc
 )
 
 add_executable(small-vector-benchmark
