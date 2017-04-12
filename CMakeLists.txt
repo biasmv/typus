@@ -12,6 +12,7 @@ add_library(googletest STATIC
 target_include_directories(googletest 
                            PUBLIC  ${GTEST_DIRECTORY}/include 
                            PRIVATE ${GTEST_DIRECTORY})
+
 add_executable(all-tests
                tests/result.cc
                tests/flags.cc
@@ -19,7 +20,15 @@ add_executable(all-tests
                tests/small_vector.cc
 )
 
+add_executable(small-vector-benchmark
+               tests/small_vector_benchmark.cc
+)
+
 target_include_directories(all-tests 
+                           PRIVATE include)
+
+set_property(TARGET small-vector-benchmark PROPERTY CXX_STANDARD 11)
+target_include_directories(small-vector-benchmark
                            PRIVATE include)
 
 set_property(TARGET all-tests PROPERTY CXX_STANDARD 11)
