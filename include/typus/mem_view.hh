@@ -20,6 +20,8 @@
 #include <cmath>
 #include <ostream>
 
+#include <typus/assert.hh>
+
 
 namespace typus {
 
@@ -51,14 +53,15 @@ public:
     bool empty() const { return end_ == begin_; }
 
     const T& operator[](std::size_t index) const {
-        assert(begin_ + index < end_ && begin_ + index >= begin_);
+        TYPUS_REQUIRES(begin_ + index < end_ && begin_ + index >= begin_);
         return begin_[index];
     }
 
     T& operator[](std::size_t index) {
-        assert(begin_ + index < end_ && begin_ + index >= begin_);
+        TYPUS_REQUIRES(begin_ + index < end_ && begin_ + index >= begin_);
         return begin_[index];
     }
+
 public:
     bool operator==(const mem_view &rhs) const {
         if (this->size() != rhs.size()) {

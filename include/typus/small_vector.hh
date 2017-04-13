@@ -17,12 +17,12 @@
 #ifndef TYPUS_SMALL_VECTOR_HH
 #define TYPUS_SMALL_VECTOR_HH
 
-#include <cassert>
 #include <cstdint>
 #include <type_traits>
 #include <initializer_list>
 #include <memory>
 
+#include "assert.hh"
 #include "memory_ops.hh"
 
 namespace typus {
@@ -159,12 +159,12 @@ public:
     }
 
     inline const T& operator[](std::size_t i) const {
-        assert(i < this->size());
+        TYPUS_REQUIRES(i < this->size());
         return begin_[i];
     }
 
     inline T& operator[](std::size_t i) {
-        assert(i < this->size());
+        TYPUS_REQUIRES(i < this->size());
         return begin_[i];
     }
 
@@ -174,7 +174,7 @@ public:
      * \pre The vector is not empty.
      */
     inline T& front() { 
-        assert(!this->empty());
+        TYPUS_REQUIRES(!this->empty());
         return *begin_; 
     }
 
@@ -184,7 +184,7 @@ public:
      * \pre The vector is not empty.
      */
     inline const T& front() const { 
-        assert(!this->empty());
+        TYPUS_REQUIRES(!this->empty());
         return *begin_; 
     }
 
@@ -194,7 +194,7 @@ public:
      * \pre The vector is not empty.
      */
     inline T& back() { 
-        assert(!this->empty());
+        TYPUS_REQUIRES(!this->empty());
         return *(end_-1); 
     }
 
@@ -204,7 +204,7 @@ public:
      * \pre The vector is not empty.
      */
     inline const T& back() const { 
-        assert(!this->empty());
+        TYPUS_REQUIRES(!this->empty());
         return *(end_-1); 
     }
 
@@ -245,7 +245,7 @@ public:
      * \post The last element has been removed from the vector.
      */
     inline void pop_back() {
-        assert(!this->empty());
+        TYPUS_REQUIRES(!this->empty());
         (end_-1)->~T();
         --end_;
     }
@@ -318,7 +318,7 @@ void small_vector<T>::clear() {
 template <typename T>
 void small_vector<T>::grow_to_hold_at_least(std::size_t n) {
     std::size_t new_capacity = detail::next_power_of_two(n);
-    assert(new_capacity > this->capacity());
+    TYPUS_REQUIRES(new_capacity > this->capacity());
     bool free_required = !this->is_small();
     T* new_begin = static_cast<T*>(malloc(sizeof(T) * new_capacity));
     uninitialized_move_range(begin_, end_, new_begin);
@@ -332,7 +332,7 @@ void small_vector<T>::grow_to_hold_at_least(std::size_t n) {
 
 template <typename T>
 void small_vector<T>::push_back_slow_path(const T&value) {
-    assert(end_ == capacity_);
+    TYPUS_REQUIRES(end_ == capacity_);
     this->grow_to_hold_at_least(this->size() + 1u);
     new(end_) T(value);
     ++end_;
@@ -341,7 +341,7 @@ void small_vector<T>::push_back_slow_path(const T&value) {
 template <typename T>
 template <typename ...As>
 void small_vector<T>::emplace_back_slow_path(As &&...args) {
-    assert(end_ == capacity_);
+    TYPUS_REQUIRES(end_ == capacity_);
     this->grow_to_hold_at_least(this->size() + 1u);
     new(end_) T(std::forward<As>(args)...);
     ++end_;
