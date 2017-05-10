@@ -34,8 +34,8 @@ inline void fail(const char* file, int line,
 
 #if defined(TYPUS_DISABLE_INVARIANT_CHECKS) && TYPUS_DISABLE_INVARIANT_CHECKS != 0
 #   define TYPUS_INVARIANT(type, cond)
-#   define TYPUS_REQUIRES(type, cond)
-#   define TYPUS_GUARANTEES(type, cond)
+#   define TYPUS_REQUIRES(cond)
+#   define TYPUS_GUARANTEES(cond)
 #else
 #   define TYPUS_INVARIANT(type, cond) \
         if (!(cond)) { typus::fail(__FILE__, __LINE__, type " failed: " #cond); }
