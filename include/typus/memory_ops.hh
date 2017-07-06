@@ -26,6 +26,10 @@ namespace typus {
 
 namespace detail {
 
+template <bool cond>
+using true_or_false_t = 
+    typename std::conditional<cond, std::true_type, std::false_type>::type;
+
 template <typename T>
 void destroy_range(T *begin, T * end, std::false_type) {
     for (; begin != end; ++begin) {
@@ -58,10 +62,7 @@ T * uninitialized_move_range(T *begin, T* end, T* dst, std::false_type) {
 }
 template <typename T>
 T * uninitialized_move_range(T *begin, T* end, T* dst) {
-    using tag = 
-        typename std::conditional<std::is_move_constructible<T>::value, 
-                                  std::true_type, 
-                                  std::false_type>::type;
+    using tag = detail::true_or_false_t<std::is_move_constructible<T>::value>;
     return detail::uninitialized_move_range(begin, end, dst, tag{});
 }
 
@@ -69,10 +70,7 @@ T * uninitialized_move_range(T *begin, T* end, T* dst) {
 // destructible types.
 template <typename T>
 inline void destroy_range(T *begin, T* end) {
-    using tag = 
-        typename std::conditional<std::is_trivially_destructible<T>::value, 
-                                  std::true_type, 
-                                  std::false_type>::type;
+    using tag = detail::true_or_false_t<std::is_trivially_destructible<T>::value>;
     detail::destroy_range(begin, end, tag{});
 }
 
