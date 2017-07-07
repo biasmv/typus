@@ -29,7 +29,7 @@ namespace typus {
  * \brief A view for a continuous block of memory
  *
  * This class is a replacement for accessing memory through raw-pointers. 
- * The memory area is not owned by the mem_view. Thus it just be guaranteed by 
+ * The memory area is not owned by the mem_view. Thus it must be guaranteed by 
  * the caller that the memory region pointed to by mem_view is valid as long as 
  * it is accessed.
  */
