@@ -142,3 +142,18 @@ TEST(Result, value_or) {
     ASSERT_EQ(std::string{"good value"}, one.value_or("bad value"));
 }
 
+TEST(Result, and_then) {
+    result<std::string> one = result<std::string>::fail();
+    ASSERT_FALSE(one.and_then([](const std::string&) { 
+        return result<std::string>{"ok"};
+    }).ok());
+    one = result<std::string>{"good value"};
+    ASSERT_EQ(std::string{"good value"}, one.value_or("bad value"));
+    ASSERT_EQ("ok", one.and_then([](const std::string&) { 
+        return result<std::string>{"ok"};
+    }).value());
+    ASSERT_EQ("ok", one.and_then([](const std::string&) { 
+        return std::string{"ok"};
+    }).value());
+}
+

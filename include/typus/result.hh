@@ -21,6 +21,8 @@
 #include <cassert>
 #include <type_traits>
 
+#include "assert.hh"
+
 
 namespace typus {
 
@@ -204,6 +206,9 @@ protected:
  * Typical uses of this class include as a return type for a function/method 
  * that can fail. The result acts as a replacement for exception-based error 
  * handling.
+ *
+ * This class can be used as a replacement for std::optional (using a boolean 
+ * error type).
  */
 template <typename T, typename E=bool>
 class result : public detail::result_storage<T, E> {
@@ -299,7 +304,7 @@ public:
      * Aborts if the result does not hold a valid value.
      */
     const T& value() const { 
-        assert(this->ok());
+        TYPUS_REQUIRES(this->ok());
         return this->value_; 
     }
     /**
@@ -308,7 +313,7 @@ public:
      * Aborts if the result does not hold a valid value.
      */
     T& value() { 
-        assert(this->ok());
+        TYPUS_REQUIRES(this->ok());
         return this->value_; 
     }
 
@@ -316,10 +321,9 @@ public:
      * \brief extract the value out of the result.
      */
     T && extract() {
-        assert(this->ok());
+        TYPUS_REQUIRES(this->ok());
         return std::move(this->value_);
     }
-
 
     /**
      * \brief Returns the value contained in the result, or in case of
@@ -331,6 +335,7 @@ public:
         }
         return error_value;
     }
+
     /**
      * \brief Returns the value contained in the result, or in case of
      *       error, the value provided as the method argument.
@@ -340,6 +345,16 @@ public:
             return this->value_;
         }
         return error_value;
+    }
+
+    /**
+     * \brief Apply the function \p func to the contained value, or return
+     *     this object in case result holds an error.
+     */
+    template <typename F>
+    result<T, E> and_then(F && func) {
+        // allows functions that return result<T, E> as well as T
+        return this->ok() ?  func(this->value_) : *this;
     }
 
 private:
@@ -359,8 +374,7 @@ private:
  *
  * result<std::string> foo() {
  *    std::string value  = TRY(may_fail());
- *    return do_stuff(value);
- *  
+ *    return do_stuff(value); *  
  * }
  * \endcode
  */
