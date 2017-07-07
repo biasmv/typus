@@ -83,7 +83,7 @@ protected:
         }
     }
 
-    result_storage(const result_storage &&rhs): error_(rhs.error_) {
+    result_storage(result_storage &&rhs): error_(rhs.error_) {
         if (error_traits<E>::is_ok(error_)) {
             // in-place new
             ::new (std::addressof(value_)) T(std::move(rhs.value_));
@@ -94,11 +94,33 @@ protected:
         value_(rhs), error_(error_traits<E>::ok_value()) {
     }
 
-    result_storage(const value_type &&rhs): 
+    result_storage(value_type &&rhs): 
         value_(std::move(rhs)), error_(error_traits<E>::ok_value()) {
     }
 
     result_storage(failed_tag_t, E error): nul_state_('\0'), error_(error) {
+    }
+
+    result_storage &operator=(const result_storage& rhs) {
+        if (error_traits<E>::is_ok(error_)) {
+            value_.~T();
+        }
+        error_ = rhs.error_;
+        if (error_traits<E>::is_ok(error_)) {
+            ::new (std::addressof(value_)) value_type(rhs.value_);
+        }
+        return *this;
+    }
+
+    result_storage &operator=(result_storage&& rhs) {
+        error_ = rhs.error_;
+        if (error_traits<E>::is_ok(error_)) {
+            value_.~T();
+        }
+        if (error_traits<E>::is_ok(error_)) {
+            ::new (std::addressof(value_)) value_type(std::move(rhs.value_));
+        }
+        return *this;
     }
 
     ~result_storage() {
@@ -129,7 +151,7 @@ protected:
         }
     }
 
-    result_storage(const result_storage &&rhs): error_(rhs.error_) {
+    result_storage(result_storage &&rhs): error_(rhs.error_) {
         if (error_traits<E>::is_ok(error_)) {
             // in-place new
             ::new (std::addressof(value_)) value_type(std::move(rhs.value_));
@@ -140,15 +162,32 @@ protected:
         value_(rhs), error_(error_traits<E>::ok_value()) {
     }
 
-    result_storage(const value_type &&rhs): 
+    result_storage(value_type &&rhs): 
         value_(std::move(rhs)), error_(error_traits<E>::ok_value()) {
     }
 
     result_storage(failed_tag_t, E error): nul_state_('\0'), error_(error) {
     }
 
+    result_storage &operator=(const result_storage& rhs) {
+        error_ = rhs.error_;
+        if (error_traits<E>::is_ok(error_)) {
+            ::new (std::addressof(value_)) value_type(rhs.value_);
+        }
+        return *this;
+    }
+
+    result_storage &operator=(result_storage&& rhs) {
+        error_ = rhs.error_;
+        if (error_traits<E>::is_ok(error_)) {
+            ::new (std::addressof(value_)) value_type(std::move(rhs.value_));
+        }
+        return *this;
+    }
+
     // nothing to be done, value_type is trivially destructible
     ~result_storage() { }
+
     union {
         char nul_state_;
         T value_;
@@ -157,6 +196,7 @@ protected:
 };
 
 } // namespace detail
+
 
 /**
  * \brief class holding a value of type T or an error of type E.
@@ -170,6 +210,45 @@ class result : public detail::result_storage<T, E> {
 public:
     typedef T value_type;
     typedef E error_type;
+
+public:
+    /**
+     * \brief create a result containing a default-constructed value.
+     */
+    result() = default;
+
+    /**
+     * \brief copy-construct a result.
+     */
+    result(const result<T, E>& rhs): detail::result_storage<T, E>(rhs) { }
+
+    /**
+     * \brief construct a new result holding a value by copy-constructor.
+     */
+    result(const value_type &rhs): detail::result_storage<T, E>(rhs) {}
+
+    /**
+     * \brief construct a new result holding a value through move construction.
+     */
+    result(value_type &&rhs): detail::result_storage<T, E>(std::move(rhs)) {}
+
+
+    result(result<T, E> &&rhs): detail::result_storage<T, E>(std::move(rhs)) {
+    }
+
+    template <typename T2, typename E2>
+    friend class result;
+
+    /**
+     * Allow for implicit conversion from one failed result type to another. 
+     * Only supported if error types are the same. aborts if the value is
+     * ok. 
+     */
+    template<typename U>
+    result(const result<U, E> &other): 
+        detail::result_storage<T,E>(detail::failed_tag_t{}, other.error_) {
+        assert(!other.ok());
+    }
 
     /**
      * \brief construct a failed result using the provided error value
@@ -188,6 +267,15 @@ public:
                            error_traits<E>::default_fail_value());
     }
 
+
+    result<T, E> &operator=(const result<T, E> &rhs) = default;
+    result<T, E> &operator=(result<T, E> &&rhs) = default;
+
+    /**
+     * \brief The error state of the result.
+     */
+    E error() const { return this->error_; }
+
     /**
      * \brief whether the result contains a valid value.
      */
@@ -200,7 +288,7 @@ public:
      *
      * Identical to calling \ref ok.
      */
-    operator bool() const {
+    explicit operator bool() const {
         return this->ok();
     }
 
@@ -231,42 +319,29 @@ public:
         assert(this->ok());
         return std::move(this->value_);
     }
-public:
-    /**
-     * \brief create a result containing a default-constructed value.
-     */
-    result() = default;
-    /**
-     * \brief copy-construct a result.
-     */
-    result(const result& rhs) = default;
-    /**
-     * \brief construct a new result holding a value by copy-constructor.
-     */
-    result(const  value_type &rhs): detail::result_storage<T, E>(rhs) {}
-    /**
-     * \brief construct a new result holding a value through move construction.
-     */
-    result(value_type &&rhs): detail::result_storage<T, E>(std::move(rhs)) {}
 
-    template <typename T2, typename E2>
-    friend class result;
 
     /**
-     * Allow for implicit conversion from one failed result type to another. 
-     * Only supported if error types are the same. aborts if the value is
-     * ok. 
+     * \brief Returns the value contained in the result, or in case of
+     *       error, the value provided as the method argument.
      */
-    template<typename U>
-    result(const result<U, E> &other): 
-        detail::result_storage<T,E>(detail::failed_tag_t{}, other.error_) {
-        assert(!other.ok());
+    const T &value_or(const T& error_value) const {
+        if (this->ok()) {
+            return this->value_;
+        }
+        return error_value;
+    }
+    /**
+     * \brief Returns the value contained in the result, or in case of
+     *       error, the value provided as the method argument.
+     */
+    T &value_or(T& error_value) {
+        if (this->ok()) {
+            return this->value_;
+        }
+        return error_value;
     }
 
-    /**
-     * \brief The error state of the result.
-     */
-    E error() const { return this->error_; }
 private:
     result(detail::failed_tag_t, const error_type &e): 
         detail::result_storage<T, E>(detail::failed_tag_t{}, e) {
