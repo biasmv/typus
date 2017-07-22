@@ -26,175 +26,139 @@
 
 namespace typus {
 
-template <typename E>
-struct error_traits {
-    /**
-     * Whether the result is OK.
-     */
-    static bool is_ok(const E& value);
-
-    /**
-     * Error value to be used to indicate that result is OK, e.g. contains a 
-     * constructed value of type T.
-     */
-    constexpr static E ok_value();
-
-    /**
-     * May be provided for an error type as the default error status, so 
-     * \code result<T,E>::fail() \endcode can be called without arguments. For 
-     * types where there is no clear default failed value, this can be omitted.
-     */
-    constexpr static E default_fail_value();
-};
-
-/**
- * Default error traits for boolean errors.
- */
-template <>
-struct error_traits<bool> {
-    static bool is_ok(const bool& error) {
-        return !error;
-    }
-    constexpr static bool ok_value() { return false; }
-    constexpr static bool default_fail_value() { return true; }
-};
-
-
 namespace detail {
 
 // Tag type for failed result construction. 
 struct failed_tag_t {};
 
+
+
 // holder class for the actual result. This class is required, because we want 
 // to have separate implementations for trivially destructible value types and 
 // types that require the destructor to be invoked.
 template <typename T, typename E, 
-          bool =std::is_trivially_destructible<T>::value>
+          bool =std::is_trivially_destructible<T>::value && std::is_trivially_destructible<E>::value>
 class result_storage {
-public:
-    using value_type = T;
-    using error_type = E;
 protected:
-    result_storage(): value_(), error_(error_traits<E>::ok_value()) {
+    friend void construct(result_storage<T, E, false> &&, T &&, E &&, bool);
+
+    result_storage(): value_(), ok_(true) {
     }
     
-    result_storage(const result_storage &rhs): error_(rhs.error_) {
-        if (error_traits<E>::is_ok(error_)) {
-            // in-place new
-            ::new (std::addressof(value_)) value_type(rhs.value_);
-        }
+    result_storage(const result_storage &rhs): ok_(rhs.ok_) {
+        construct(rhs.value_, rhs.error_, ok_);
     }
 
-    result_storage(result_storage &&rhs): error_(rhs.error_) {
-        if (error_traits<E>::is_ok(error_)) {
-            // in-place new
-            ::new (std::addressof(value_)) T(std::move(rhs.value_));
-        }
+    result_storage(result_storage &&rhs): ok_(rhs.ok_) {
+        construct(std::move(rhs.value_), std::move(rhs.error_), ok_);
     }
 
-    result_storage(const value_type &rhs): 
-        value_(rhs), error_(error_traits<E>::ok_value()) {
+    result_storage(const T &rhs): 
+        value_(rhs), ok_(true) {
     }
 
-    result_storage(value_type &&rhs): 
-        value_(std::move(rhs)), error_(error_traits<E>::ok_value()) {
+    result_storage(T &&rhs): 
+        value_(std::move(rhs)), ok_(true) {
     }
 
-    result_storage(failed_tag_t, E error): nul_state_('\0'), error_(error) {
+    result_storage(failed_tag_t, E error): error_(error), ok_(false) {
     }
 
     result_storage &operator=(const result_storage& rhs) {
-        if (error_traits<E>::is_ok(error_)) {
-            value_.~T();
-        }
-        error_ = rhs.error_;
-        if (error_traits<E>::is_ok(error_)) {
-            ::new (std::addressof(value_)) value_type(rhs.value_);
-        }
+        this->destroy();
+        this->ok_ = rhs.ok_;
+        construct(rhs.value_, rhs.error_, this->ok_);
         return *this;
     }
 
     result_storage &operator=(result_storage&& rhs) {
-        error_ = rhs.error_;
-        if (error_traits<E>::is_ok(error_)) {
-            value_.~T();
-        }
-        if (error_traits<E>::is_ok(error_)) {
-            ::new (std::addressof(value_)) value_type(std::move(rhs.value_));
-        }
+        this->destroy();
+        this->ok_ = rhs.ok_;
+        construct(std::move(rhs.value_), std::move(rhs.error_), this->ok_);
         return *this;
     }
 
     ~result_storage() {
-        if (error_traits<E>::is_ok(error_)) {
-            value_.~T();
+        this->destroy();
+    }
+protected:
+    union {
+        T value_;
+        E error_;
+    };
+    bool ok_;
+private:
+    template <typename T2, typename E2>
+    inline void construct(T2 && v, E2 &&e, bool ok) {
+        if (ok) {
+            ::new (std::addressof(this->value_)) T(std::forward<T2>(v));
+        } else {
+            ::new (std::addressof(this->error_)) E(std::forward<E2>(e));
         }
     }
-    union {
-        char nul_state_;
-        T value_;
-    };
-    E error_;
+    inline void destroy() {
+        if (this->ok_) {
+            this->value_.~T();
+        } else {
+            this->error_.~E();
+        }
+    }
 };
 
 template <typename T, typename E>
 class result_storage<T, E, true> {
-public:
-    using value_type = T;
-    using error_type = E;
 protected:
-    result_storage(): value_(), error_(error_traits<E>::ok_value()) {
+
+    result_storage(): value_(), ok_(true) {
     }
     
-    result_storage(const result_storage &rhs): error_(rhs.error_) {
-        if (error_traits<E>::is_ok(error_)) {
-            // in-place new
-            ::new (std::addressof(value_)) value_type(rhs.value_);
-        }
+    result_storage(const result_storage &rhs): ok_(rhs.ok_) {
+        construct(rhs.value_, rhs.error_, ok_);
     }
 
-    result_storage(result_storage &&rhs): error_(rhs.error_) {
-        if (error_traits<E>::is_ok(error_)) {
-            // in-place new
-            ::new (std::addressof(value_)) value_type(std::move(rhs.value_));
-        }
+    result_storage(result_storage &&rhs): ok_(rhs.ok_) {
+        construct(std::move(rhs.value_), std::move(rhs.error_), ok_);
     }
 
-    result_storage(const value_type &rhs): 
-        value_(rhs), error_(error_traits<E>::ok_value()) {
+    result_storage(const T &rhs): 
+        value_(rhs), ok_(true) {
     }
 
-    result_storage(value_type &&rhs): 
-        value_(std::move(rhs)), error_(error_traits<E>::ok_value()) {
+    result_storage(T &&rhs): 
+        value_(std::move(rhs)), ok_(true) {
     }
 
-    result_storage(failed_tag_t, E error): nul_state_('\0'), error_(error) {
+    result_storage(failed_tag_t, E error): error_(error), ok_(false) {
     }
 
     result_storage &operator=(const result_storage& rhs) {
-        error_ = rhs.error_;
-        if (error_traits<E>::is_ok(error_)) {
-            ::new (std::addressof(value_)) value_type(rhs.value_);
-        }
+        this->ok_ = rhs.ok_;
+        construct(rhs.value_, rhs.error_, this->ok_);
         return *this;
     }
 
     result_storage &operator=(result_storage&& rhs) {
-        error_ = rhs.error_;
-        if (error_traits<E>::is_ok(error_)) {
-            ::new (std::addressof(value_)) value_type(std::move(rhs.value_));
-        }
+        this->ok_ = rhs.ok_;
+        construct(std::move(rhs.value_), std::move(rhs.error_), this->ok_);
         return *this;
     }
 
-    // nothing to be done, value_type is trivially destructible
-    ~result_storage() { }
-
+    ~result_storage() = default;
+protected:
     union {
-        char nul_state_;
         T value_;
+        E error_;
     };
-    E error_;
+    bool ok_;
+private:
+    template <typename T2, typename E2>
+    inline void construct(T2 && v, E2 &&e, bool ok) {
+        if (ok) {
+            ::new (std::addressof(this->value_)) T(std::forward<T2>(v));
+        } else {
+            ::new (std::addressof(this->error_)) E(std::forward<E2>(e));
+        }
+    }
 };
 
 } // namespace detail
@@ -220,7 +184,7 @@ public:
     /**
      * \brief create a result containing a default-constructed value.
      */
-    result() = default;
+    result(): detail::result_storage<T, E>() {}
 
     /**
      * \brief copy-construct a result.
@@ -263,15 +227,11 @@ public:
     }
     /**
      * \brief construct a failed result using the default fail value.
-     *
-     * This is probably only useful when using a boolean error type as 
-     * for all others there is no meaningful default error value.
      */
     static result<T, E> fail() {
-        return result<T,E>(detail::failed_tag_t{}, 
-                           error_traits<E>::default_fail_value());
+        return result<T,E>(detail::failed_tag_t{}, E{});
+                           
     }
-
 
     result<T, E> &operator=(const result<T, E> &rhs) = default;
     result<T, E> &operator=(result<T, E> &&rhs) = default;
@@ -279,13 +239,16 @@ public:
     /**
      * \brief The error state of the result.
      */
-    E error() const { return this->error_; }
+    E error() const { 
+        TYPUS_REQUIRES(!this->ok());
+        return this->error_;
+    }
 
     /**
      * \brief whether the result contains a valid value.
      */
     bool ok() const {
-        return error_traits<E>::is_ok(this->error_);
+        return this->ok_;
     }
 
     /**

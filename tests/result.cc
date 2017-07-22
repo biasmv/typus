@@ -82,28 +82,8 @@ TEST(Result, destructor_gets_invoked_for_non_trivially_destructible_types) {
     ASSERT_TRUE(invoked);
 }
 
-struct TrivialDestructor {
-    bool &invoked;
-
-    ~TrivialDestructor() { invoked = true; }
-};
-
-namespace std {
-
-// technically a lie, but useful for testing
-template <>
-struct is_trivially_destructible<TrivialDestructor> : public std::true_type { 
-};
-
-}
-
-TEST(Result, destructor_does_not_get_invoked_for_trivially_destructible_types) {
-    bool invoked = false;
-    TrivialDestructor value { invoked };
-    {
-        result<TrivialDestructor> r(value);
-    }
-    ASSERT_FALSE(invoked);
+TEST(Result, result_with_trivial_destructible_error_and_value_is_trivially_destructible) {
+    static_assert(std::is_trivially_destructible<result<int, float>>::value, "");
 }
 
 
@@ -115,14 +95,7 @@ TEST(Result, failed_result_conversion) {
 }
 
 enum class Error {
-    Ok, NoSuchFile, NoHardDrive
-};
-template <>
-struct error_traits<Error> {
-    constexpr static Error ok_value() { return Error::Ok; }
-    static bool is_ok(const Error& error) {
-        return error == Error::Ok;
-    }
+    NoSuchFile, NoHardDrive
 };
 
 TEST(Result, with_custom_error_type) {
