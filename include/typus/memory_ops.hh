@@ -42,15 +42,16 @@ void destroy_range(T *begin, T * end, std::true_type) {
 }
 
 template <typename T>
-T* uninitialized_move_range(T *begin, T* end, T* dst, std::true_type) {
+T* uninitialized_move_and_destroy_range(T *begin, T* end, T* dst, std::true_type) {
     for (; begin != end; ++begin, ++dst) {
         new(dst) T(std::move(*begin));
+        begin->~T();
     }
     return dst;
 }
 
 template <typename T>
-T * uninitialized_move_range(T *begin, T* end, T* dst, std::false_type) {
+T * uninitialized_move_and_destroy_range(T *begin, T* end, T* dst, std::false_type) {
     // fallback implementation using copy constructor
     for (; begin != end; ++begin, ++dst) {
         new(dst) T(*begin);
@@ -61,9 +62,9 @@ T * uninitialized_move_range(T *begin, T* end, T* dst, std::false_type) {
 
 }
 template <typename T>
-T * uninitialized_move_range(T *begin, T* end, T* dst) {
+T * uninitialized_move_and_destroy_range(T *begin, T* end, T* dst) {
     using tag = detail::true_or_false_t<std::is_move_constructible<T>::value>;
-    return detail::uninitialized_move_range(begin, end, dst, tag{});
+    return detail::uninitialized_move_and_destroy_range(begin, end, dst, tag{});
 }
 
 // destroys the elements contained in the range begin, end. no-op for trivially 

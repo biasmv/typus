@@ -115,9 +115,10 @@ TEST(SmallVector, emplace_back) {
         v.emplace_back(value);
         ASSERT_EQ(8u, v.capacity());
         ASSERT_EQ(4u, v.size());
-        ASSERT_EQ(0, value);
+        // resize required before 4th push-back. Values are moved
+        ASSERT_EQ(3, value);
     }
-    ASSERT_EQ(4, value);
+    ASSERT_EQ(7, value);
 }
 
 
@@ -171,21 +172,24 @@ struct MoveCount {
 };
 
 TEST(SmallVector, move_assignment_small_to_small) {
-    small_vector_n<MoveCount, 2> v;
     int ctor = 0;
     int assign = 0;
     int dtor = 0;
-    v.emplace_back(ctor, assign, dtor);
-    v.emplace_back(ctor, assign, dtor);
-    ASSERT_EQ(2u, v.size());
     {
-        small_vector_n<MoveCount, 2> v2;
-        v2.emplace_back(ctor, assign, dtor);
-        v2 = std::move(v);
+        small_vector_n<MoveCount, 2> v;
+        v.emplace_back(ctor, assign, dtor);
+        v.emplace_back(ctor, assign, dtor);
+        ASSERT_EQ(2u, v.size());
+        {
+            small_vector_n<MoveCount, 2> v2;
+            v2.emplace_back(ctor, assign, dtor);
+            v2 = std::move(v);
+        }
+        EXPECT_EQ(1, assign);
+        EXPECT_EQ(1, ctor);
+        EXPECT_EQ(3, dtor);
     }
-    EXPECT_EQ(1, assign);
-    EXPECT_EQ(1, ctor);
-    EXPECT_EQ(2, dtor);
+    EXPECT_EQ(3, dtor);
 }
 
 TEST(SmallVector, move_assignment_small_to_large) {
@@ -202,11 +206,12 @@ TEST(SmallVector, move_assignment_small_to_large) {
         v2.emplace_back(ctor, assign, dtor);
         v2.emplace_back(ctor, assign, dtor);
         EXPECT_EQ(2, ctor);
+        EXPECT_EQ(2, dtor);
         v2 = std::move(v);
     }
     EXPECT_EQ(0, assign);
     EXPECT_EQ(4, ctor);
-    EXPECT_EQ(5, dtor);
+    EXPECT_EQ(9, dtor);
 }
 
 TEST(SmallVector, move_assignment_large_to_small) {
@@ -217,6 +222,8 @@ TEST(SmallVector, move_assignment_large_to_small) {
     v.emplace_back(ctor, assign, dtor);
     v.emplace_back(ctor, assign, dtor);
     v.emplace_back(ctor, assign, dtor);
+    EXPECT_EQ(2, dtor);
+
     {
         small_vector_n<MoveCount, 2> v2;
         v2.emplace_back(ctor, assign, dtor);
@@ -224,7 +231,7 @@ TEST(SmallVector, move_assignment_large_to_small) {
     }
     EXPECT_EQ(0, assign);
     EXPECT_EQ(2, ctor);
-    EXPECT_EQ(4, dtor);
+    EXPECT_EQ(6, dtor);
 }
 
 TEST(SmallVector, move_assignment_large_to_large) {
@@ -244,7 +251,7 @@ TEST(SmallVector, move_assignment_large_to_large) {
     }
     EXPECT_EQ(0, assign);
     EXPECT_EQ(4, ctor);
-    EXPECT_EQ(6, dtor);
+    EXPECT_EQ(10, dtor);
 }
 
 TEST(SmallVector, copy_assignment) {
@@ -274,7 +281,7 @@ TEST(SmallVector, move_construction_small) {
     }
     EXPECT_EQ(0, assign);
     EXPECT_EQ(2, ctor);
-    EXPECT_EQ(2, dtor);
+    EXPECT_EQ(4, dtor);
 }
 
 TEST(SmallVector, move_construction_large) {
@@ -290,7 +297,7 @@ TEST(SmallVector, move_construction_large) {
     }
     EXPECT_EQ(0, assign);
     EXPECT_EQ(2, ctor);
-    EXPECT_EQ(3, dtor);
+    EXPECT_EQ(5, dtor);
 }
 
 TEST(SmallVector, resize_to_smaller_size) {

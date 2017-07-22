@@ -321,7 +321,7 @@ void small_vector<T>::grow_to_hold_at_least(std::size_t n) {
     TYPUS_REQUIRES(new_capacity > this->capacity());
     bool free_required = !this->is_small();
     T* new_begin = static_cast<T*>(malloc(sizeof(T) * new_capacity));
-    uninitialized_move_range(begin_, end_, new_begin);
+    uninitialized_move_and_destroy_range(begin_, end_, new_begin);
     end_ = new_begin + (end_ - begin_);
     capacity_ = new_begin + new_capacity;
     if (free_required) {
@@ -414,7 +414,7 @@ small_vector_n<T, S> &small_vector_n<T, S>::operator=(small_vector_n<T, S> &&rhs
         for (; dst != this->end_; ++dst, ++src) {
             dst->operator=(std::move(*src)); 
         }
-        this->end_ = uninitialized_move_range(src, rhs.end_, dst);
+        this->end_ = uninitialized_move_and_destroy_range(src, rhs.end_, dst);
         rhs.begin_ = rhs.end_ = rhs.capacity_ = nullptr;
         return *this;
     }
