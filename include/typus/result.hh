@@ -57,7 +57,7 @@ protected:
         value_(rhs), ok_(true) {
     }
 
-    result_storage(T &&rhs): 
+    result_storage(typename std::remove_reference<T>::type &&rhs): 
         value_(std::move(rhs)), ok_(true) {
     }
 
@@ -124,7 +124,7 @@ protected:
         value_(rhs), ok_(true) {
     }
 
-    result_storage(T &&rhs): 
+    result_storage(typename std::remove_reference<T>::type &&rhs): 
         value_(std::move(rhs)), ok_(true) {
     }
 
