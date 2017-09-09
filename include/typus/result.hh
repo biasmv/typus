@@ -290,18 +290,8 @@ public:
      * \brief Returns the value contained in the result, or in case of
      *       error, the value provided as the method argument.
      */
-    const T &value_or(const T& error_value) const {
-        if (this->ok()) {
-            return this->value_;
-        }
-        return error_value;
-    }
-
-    /**
-     * \brief Returns the value contained in the result, or in case of
-     *       error, the value provided as the method argument.
-     */
-    T &value_or(T& error_value) {
+    template <typename T2>
+    T value_or(T2&& error_value) const {
         if (this->ok()) {
             return this->value_;
         }
