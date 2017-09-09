@@ -54,7 +54,14 @@ TEST(Result, move_assignment) {
 }
 
 TEST(Result, copy_assignment) {
-
+    result<std::string> one = result<std::string>::fail();
+    ASSERT_FALSE(one.ok());
+    result<std::string> two(one);
+    ASSERT_FALSE(two.ok());
+    result<std::string> three("a"); 
+    ASSERT_TRUE(three.ok());
+    result<std::string> four(three);
+    ASSERT_EQ(std::string{"a"}, four.value());
 }
 
 TEST(Result, value_constructed_result_contains_value) {

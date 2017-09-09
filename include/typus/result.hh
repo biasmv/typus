@@ -40,7 +40,8 @@ template <typename T, typename E,
           bool =std::is_trivially_destructible<T>::value && std::is_trivially_destructible<E>::value>
 class result_storage {
 protected:
-    friend void construct(result_storage<T, E, false> &&, T &&, E &&, bool);
+    template <typename T2, typename E2>
+    friend void construct(result_storage<T2, E2, false> &&, T2 &&, E2 &&, bool);
 
     result_storage(): value_(), ok_(true) {
     }
