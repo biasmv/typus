@@ -166,14 +166,11 @@ private:
 
 
 /**
- * \brief class holding a value of type T or an error of type E.
+ * \brief Type that either holds a result of type T or an error of type E.
  *
- * Typical uses of this class include as a return type for a function/method 
- * that can fail. The result acts as a replacement for exception-based error 
- * handling.
- *
- * This class can be used as a replacement for std::optional (using a boolean 
- * error type).
+ * This type can be used for transporting errors out of function/method to the 
+ * caller. result<T, E> either holds a result of type T or type E. \ref ok 
+ * returns true if the result holds a value, and false if it holds and error.
  */
 template <typename T, typename E=bool>
 class result : public detail::result_storage<T, E> {
@@ -217,7 +214,7 @@ public:
     template<typename U>
     result(const result<U, E> &other): 
         detail::result_storage<T,E>(detail::failed_tag_t{}, other.error_) {
-        assert(!other.ok());
+        TYPUS_REQUIRES(!other.ok());
     }
 
     /**
